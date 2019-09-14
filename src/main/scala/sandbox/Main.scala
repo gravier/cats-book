@@ -1,9 +1,9 @@
 package sandbox
 
+import sandbox.monoids._
+import cats.instances.boolean._
+import cats.instances.set._
 import cats.syntax.eq._
-import cats.instances.option._
-import sandbox.equality.CatEquality._
-import sandbox.printable.{Cat}
 
 object Main extends App {
 //  println(Printable.format("alio"))
@@ -11,15 +11,25 @@ object Main extends App {
 //  "alio 2".print
 
 //  catShow.show(Cat("johnny", 3, "black"))
-  val cat1 = Cat("Garfield", 38, "orange and black")
-  val cat2 = Cat("Heathcliff", 33, "orange and black")
 
-  println(cat1 === cat1)
-  println(cat1 === cat2)
+  println("or combine")
+  println(OrBoolean.combine(true, false) === OrBoolean.combine(false, true))
+  println(OrBoolean.combine(true, false) === OrBoolean.combine(false, true))
 
-  val optionCat1 = Option(cat1)
-  val optionCat2 = Option.empty[Cat]
-  println(optionCat1 === optionCat1)
-  println(optionCat1 === optionCat2)
+  println("or empty - id")
+  println(OrBoolean.combine(true, OrBoolean.empty) === true)
+  println(OrBoolean.combine(false, OrBoolean.empty) === false)
+
+  println("and combine")
+  println(AndBoolean.combine(true, false) === AndBoolean.combine(false, true))
+
+  println("and empty - id")
+  println(AndBoolean.combine(true, AndBoolean.empty) === true)
+  println(AndBoolean.combine(false, AndBoolean.empty) === false)
+
+  println("concat set")
+  println(
+    ConcatSet.combine(Set(1), Set(2)) === ConcatSet.combine(Set(2), Set(1)))
+  println(ConcatSet.combine(Set(1), ConcatSet.empty) === Set(1))
 
 }
