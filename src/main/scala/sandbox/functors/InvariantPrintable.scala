@@ -21,4 +21,8 @@ object Codecs {
       def encode(value: Double): String = value.toString
       def decode(value: String): Double = value.toDouble
     }
+
+  implicit def boxCodec[A](implicit c: Codec[A]): Codec[Box[A]] =
+    c.imap[Box[A]]((a: A) => Box(a), (box: Box[A]) => box.value)
+
 }

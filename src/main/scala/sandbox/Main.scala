@@ -28,8 +28,15 @@ object Main extends App {
 
   println(
     s"encoding to string works - ${encode(123.4)} ${encode(123.4) == "123.4"}")
-  // res0: String = 123.4
   println(
     s"decoding to double works - ${decode[Double]("123.4")} ${decode[Double]("123.4") == 123.4}")
-  // res1: Double = 123.4
+
+  // res2: String = 123.4
+  decode[Box[Double]]("123.4")
+  // res3: Box[Double] = Box(123.4)
+  println(
+    s"box decoding works - ${encode(Box(123.4))} ${encode(Box(123.4)) == "123.4"}")
+
+  println(s"box decoding works - ${decode[Box[Double]]("123.4")} ${decode[
+    Box[Double]]("123.4") == Box(123.4)}")
 }
