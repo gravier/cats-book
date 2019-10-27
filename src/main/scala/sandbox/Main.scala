@@ -1,12 +1,12 @@
 package sandbox
 
-import cats.syntax.functor._
-import sandbox.functors.Codecs._
-import sandbox.functors.CustomFunctor._
-import sandbox.functors.Printers._
-import sandbox.functors._
+import cats.Eval
+import sandbox.monads.EvalFold
 //import functors.Printers.booleanPrintable._
 //import functors.Printers.stringPrintable._
 //import functors.Printers.boxPrintable._
 
-object Main extends App {}
+object Main extends App {
+  val res = EvalFold.foldRight((1 to 4000).toList, 0) { _ + _ }
+  println(res)
+}
