@@ -37,4 +37,9 @@ object PostCalculator {
         }
       case _ => throw new Exception(s"cannot parse value")
     }
+
+  def evalAll(input: List[String]): CalcState[Int] =
+    input.foldLeft(State.pure[List[Int], Int](0)) { (st, sym) =>
+      st.flatMap(_ => evalOne(sym))
+    }
 }

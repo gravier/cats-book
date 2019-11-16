@@ -1,5 +1,5 @@
 import cats.data.State
-import sandbox.monads.PostCalculator.CalcState
+import sandbox.monads.PostCalculator.{CalcState}
 
 def parser(sym: String) =   sym match {
   case num if (num.forall(_.isDigit)) => println(num)
@@ -42,3 +42,18 @@ def evalOne(sym: String): CalcState[Int] =
   }
 
 evalOne("1").run(Nil).value
+
+val program = for {
+  _ <- evalOne("1")
+  _ <- evalOne("2")
+  ans <- evalOne("+")
+} yield ans
+  program.runA(Nil).value
+
+
+def evalAll(input: List[String]): CalcState[Int] =
+  input.foldLeft(State.pure[List[Int], Int](0)) { (st, sym) =>
+    st.flatMap(_ => evalOne(sym))
+  }
+
+evalAll(List("1", "2", "+")).run(Nil).value
