@@ -14,7 +14,7 @@ def evalOne(sym: String): CalcState[Int] =
   sym match {
     case num if (num.forall(_.isDigit)) =>
       State[List[Int], Int] { stack =>
-        val newStack = stack :+ num.toInt
+        val newStack = num.toInt +: stack
         val res = num.toInt
         (newStack, res)
       }
@@ -41,14 +41,14 @@ def evalOne(sym: String): CalcState[Int] =
     case _ => throw new Exception(s"cannot parse value")
   }
 
-evalOne("1").run(Nil).value
-
-val program = for {
-  _ <- evalOne("1")
-  _ <- evalOne("2")
-  ans <- evalOne("+")
-} yield ans
-  program.runA(Nil).value
+//evalOne("1").run(Nil).value
+//
+//val program = for {
+//  _ <- evalOne("1")
+//  _ <- evalOne("2")
+//  ans <- evalOne("+")
+//} yield ans
+//  program.runA(Nil).value
 
 
 def evalAll(input: List[String]): CalcState[Int] =
@@ -56,4 +56,12 @@ def evalAll(input: List[String]): CalcState[Int] =
     st.flatMap(_ => evalOne(sym))
   }
 
-evalAll(List("1", "2", "+")).run(Nil).value
+//evalAll(List("1", "2", "+")).run(Nil).value
+
+val program2 = for {
+  _ <- evalAll(List("1", "2", "+"))
+  _ <- evalAll(List("3", "4", "+"))
+  ans <- evalOne("*")
+} yield ans
+
+program2.runA(Nil).value
