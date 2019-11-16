@@ -2,13 +2,39 @@ package sandbox.monads
 import cats.data.State
 import cats.data.State._
 import cats.syntax.applicative._
+import sandbox.monads.PostCalculator.CalcState
 
 object PostCalculator {
   type CalcState[A] = State[List[Int], A]
 
   def evalOne(sym: String): CalcState[Int] =
-    for {
-      ans <- get[Int]
-//    if (sym.forall(_.isDigit)) State.modify[List[Int]](_ :+ sym.toInt)
-    } yield ans
+    sym match {
+      case num if (num.forall(_.isDigit)) =>
+        State[List[Int], Int] { stack =>
+          val newStack = stack :+ num.toInt
+          val res = num.toInt
+          (newStack, res)
+        }
+      case "+" =>
+        State[List[Int], Int] { stack =>
+          val newStack = stack match {
+            case (a :: b :: tail) => (a + b) +: tail
+            case _ =>
+              throw new Exception(s"cannot perform op: + on state: $stack")
+          }
+          val res = newStack.head
+          (newStack, res)
+        }
+      case "*" =>
+        State[List[Int], Int] { stack =>
+          val newStack = stack match {
+            case (a :: b :: tail) => (a * b) +: tail
+            case _ =>
+              throw new Exception(s"cannot perform op: * on state: $stack")
+          }
+          val res = newStack.head
+          (newStack, res)
+        }
+      case _ => throw new Exception(s"cannot parse value")
+    }
 }
