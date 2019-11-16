@@ -56,6 +56,8 @@ def evalAll(input: List[String]): CalcState[Int] =
     st.flatMap(_ => evalOne(sym))
   }
 
+def evalInput(input: String): (List[Int], Int) = evalAll(input.split(" ").toList).run(Nil).value
+
 //evalAll(List("1", "2", "+")).run(Nil).value
 
 val program2 = for {
@@ -65,3 +67,5 @@ val program2 = for {
 } yield ans
 
 program2.runA(Nil).value
+
+evalInput("1 2 + 3 4 + *")
