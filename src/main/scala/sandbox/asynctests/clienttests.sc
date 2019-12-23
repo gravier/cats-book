@@ -1,22 +1,22 @@
-import cats.Id
+import cats.{Applicative, Id}
 
 import scala.concurrent.Future
-
-trait UptimeClient[F[_]] {
-  def getUptime(hostname: String): F[Int]
-}
 
 import cats.instances.future._ // for Applicative
 import cats.instances.list._   // for Traverse
 import cats.syntax.traverse._  // for traverse
 import scala.concurrent.ExecutionContext.Implicits.global
+import cats.syntax.functor._ // for map
 
-class UptimeService[F[_]](client: UptimeClient[Future]) {
-  def getTotalUptime(hostnames: List[String]): Future[Int] = ???
-//    hostnames.traverse(client.getUptime).map(_.sum)
 
+trait UptimeClient[F[_]] {
+  def getUptime(hostname: String): F[Int]
 }
 
+class UptimeService[F[_]](client: UptimeClient[F])(implicit app: Applicative[F]) {
+  def getTotalUptime(hostnames: List[String]): F[Int] =
+    hostnames.traverse(client.getUptime).map(_.sum)
+}
 
 
 trait RealUptimeClient extends UptimeClient[Future] {
@@ -34,9 +34,11 @@ class TestUptimeClient(hosts: Map[String, Int]) extends UptimeClient[Id] {
 
 def testTotalUptime() = {
   val hosts    = Map("host1" -> 10, "host2" -> 6)
-  val client   = new TestUptimeClientImpl(hosts)
+  val client   = new TestUptimeClient(hosts)
   val service  = new UptimeService(client)
   val actual   = service.getTotalUptime(hosts.keys.toList)
   val expected = hosts.values.sum
   assert(actual == expected)
 }
+
+testTotalUptime()
