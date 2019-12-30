@@ -2,7 +2,11 @@ import cats.{Applicative, Monoid}
 import cats.syntax.monoid._
 import cats.instances.future._
 import cats.instances.list._
+import cats.instances.vector._
 import cats.syntax.traverse._
+import cats.syntax.foldable._
+import cats.Foldable
+import cats.Traverse
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
@@ -43,16 +47,33 @@ def parallelFoldMap[A, B : Monoid]
 
 
 // Mapping to a String uses the concatenation monoid:
-val start1 = System.nanoTime
-foldMap((1 to 10000000).toVector)(identity)
-val end1 = System.nanoTime
-val singleTime = (end1 - start1) / 1000000
+//val start1 = System.nanoTime
+//foldMap((1 to 10000000).toVector)(identity)
+//val end1 = System.nanoTime
+//val singleTime = (end1 - start1) / 1000000
+//
+//
+//val start = System.nanoTime
+//Await.result(parallelFoldMap((1 to 10000000).toVector)(identity), 10.seconds)
+//val end = System.nanoTime
+//val parallelTime = (end - start) / 1000000
 
+
+def parallelForldMapCats[A, B : Monoid]
+(values: Vector[A])
+(func: A => B): Future[B] = {
+  val cores = Runtime.getRuntime.availableProcessors
+  values.grouped(cores)
+    .toVector
+    .traverse[Future, B]{ part => Future{ foldMap(part)(func) }}
+    .map(_.combineAll)
+}
 
 val start = System.nanoTime
-Await.result(parallelFoldMap((1 to 10000000).toVector)(identity), 10.seconds)
+Await.result(parallelFoldMap((1 to 1000000).toVector)(identity), 2.seconds)
 val end = System.nanoTime
 val parallelTime = (end - start) / 1000000
+
 
 // res4: String = "1! 2! 3! "
 
