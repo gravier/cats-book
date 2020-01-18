@@ -1,6 +1,6 @@
 package sandbox
 
-import sandbox.check.{Check, CheckF, Pure}
+import sandbox.check.{Check, CheckF, Predicate, Pure}
 import cats.Semigroup
 import cats.instances.list._
 import cats.syntax.either._
@@ -29,21 +29,21 @@ object Main extends App {
   println(check(-3))
 
   import cats.instances.list._ // for Semigroup
-  val a2: Check[List[String], Int] =
+  val a2: Predicate[List[String], Int] =
     Pure { v =>
       if (v > 2) v.valid
       else List("Must be > 2").invalid
     }
-  val b2: Check[List[String], Int] =
+  val b2: Predicate[List[String], Int] =
     Pure { v =>
       if (v < -2) v.valid
       else List("Must be < -2").invalid
     }
 
-  val check2: Check[List[String], Int] =
+  val check2: Predicate[List[String], Int] =
     a2 and b2
 
-  val check3: Check[List[String], Int] =
+  val check3: Predicate[List[String], Int] =
     a2 or b2
 
   println(check2(5))
