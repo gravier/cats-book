@@ -6,6 +6,7 @@ import cats.instances.list._
 import cats.syntax.either._
 // for Semigroup
 import cats.syntax.semigroup._ // for |+|
+import cats.syntax.validated._ // for |+|
 
 object Main extends App {
   import cats.instances.list._ // for Semigroup
@@ -30,21 +31,29 @@ object Main extends App {
   import cats.instances.list._ // for Semigroup
   val a2: Check[List[String], Int] =
     Pure { v =>
-      if (v > 2) v.asRight
-      else List("Must be > 2").asLeft
+      if (v > 2) v.valid
+      else List("Must be > 2").invalid
     }
   val b2: Check[List[String], Int] =
     Pure { v =>
-      if (v < -2) v.asRight
-      else List("Must be < -2").asLeft
+      if (v < -2) v.valid
+      else List("Must be < -2").invalid
     }
 
   val check2: Check[List[String], Int] =
     a2 and b2
 
+  val check3: Check[List[String], Int] =
+    a2 or b2
+
   println(check2(5))
   println(check2(0))
   println(check2(-3))
+
+  println(check3(5))
+  println(check3(0))
+  println(check3(-3))
+
 //  val a1: CheckF[Nothing, Int] =
 //    CheckF(v => v.asRight)
 //
