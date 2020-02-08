@@ -1,7 +1,7 @@
 package sandbox.check
 
 import cats.Semigroup
-import cats.data.Validated
+import cats.data.{AndThen, Validated}
 import cats.data.Validated.{Invalid, Valid}
 import cats.instances.list._
 import cats.syntax.validated._
@@ -69,6 +69,10 @@ sealed trait Check[E, A, B] {
 
   def flatMap[C](f: B => Check[E, A, C]): Check[E, A, C] =
     FlatMap[E, A, B, C](this, f)
+
+  def andThen[C](that: Check[E, B, C]): Check[E, A, C] =
+    AndThen2(this, that)
+
 }
 
 object Check {
@@ -87,6 +91,13 @@ final case class FlatMap[E, A, B, C](check: Check[E, A, B],
     extends Check[E, A, C] {
   def apply(in: A)(implicit s: Semigroup[E]): Validated[E, C] =
     check(in).toEither.flatMap(b => func(b)(in).toEither).toValidated
+}
+
+final case class AndThen2[E, A, B, C](check1: Check[E, A, B],
+                                      check2: Check[E, B, C])
+    extends Check[E, A, C] {
+  def apply(in: A)(implicit s: Semigroup[E]): Validated[E, C] =
+    check1(in).withEither(e => e.flatMap(check2(_).toEither))
 }
 
 final case class Pure2[E, A](pred: Predicate[E, A]) extends Check[E, A, A] {
