@@ -66,6 +66,9 @@ sealed trait Check[E, A, B] {
 
   def map[C](f: B => C): Check[E, A, C] =
     Map[E, A, B, C](this, f)
+
+  def flatMap[C](f: B => Check[E, A, C]): Check[E, A, C] =
+    FlatMap[E, A, B, C](this, f)
 }
 
 object Check {
@@ -77,6 +80,13 @@ final case class Map[E, A, B, C](check: Check[E, A, B], func: B => C)
     extends Check[E, A, C] {
   def apply(in: A)(implicit s: Semigroup[E]): Validated[E, C] =
     check(in).map(func)
+}
+
+final case class FlatMap[E, A, B, C](check: Check[E, A, B],
+                                     func: B => Check[E, A, C])
+    extends Check[E, A, C] {
+  def apply(in: A)(implicit s: Semigroup[E]): Validated[E, C] =
+    check(in).toEither.flatMap(b => func(b)(in).toEither).toValidated
 }
 
 final case class Pure2[E, A](pred: Predicate[E, A]) extends Check[E, A, A] {
