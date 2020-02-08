@@ -7,6 +7,8 @@ import cats.instances.list._
 import cats.syntax.validated._
 import cats.syntax.apply._
 import cats.syntax.either._
+import cats.syntax.validated._ // for valid and invalid
+
 // for Semigroup
 import cats.syntax.semigroup._ // for |+|
 //
@@ -33,6 +35,7 @@ final case class CheckF[E, A](func: A => Either[E, A]) {
 }
 
 sealed trait Predicate[E, A] {
+  import Predicate._
   def and(that: Predicate[E, A]): Predicate[E, A] =
     And(this, that)
   def or(that: Predicate[E, A]): Predicate[E, A] =
@@ -53,13 +56,22 @@ sealed trait Predicate[E, A] {
     }
 }
 
-final case class Pure[E, A](func: A => Validated[E, A]) extends Predicate[E, A]
+object Predicate {
+  final case class And[E, A](left: Predicate[E, A], right: Predicate[E, A])
+      extends Predicate[E, A]
 
-final case class And[E, A](left: Predicate[E, A], right: Predicate[E, A])
-    extends Predicate[E, A]
+  final case class Or[E, A](left: Predicate[E, A], right: Predicate[E, A])
+      extends Predicate[E, A]
 
-final case class Or[E, A](left: Predicate[E, A], right: Predicate[E, A])
-    extends Predicate[E, A]
+  final case class Pure[E, A](func: A => Validated[E, A])
+      extends Predicate[E, A]
+
+  def apply[E, A](f: A => Validated[E, A]): Predicate[E, A] =
+    Pure(f)
+
+  def lift[E, A](err: E, fn: A => Boolean): Predicate[E, A] =
+    Pure(a => if (fn(a)) a.valid else err.invalid)
+}
 
 sealed trait Check[E, A, B] {
   def apply(in: A)(implicit s: Semigroup[E]): Validated[E, B]
@@ -77,7 +89,10 @@ sealed trait Check[E, A, B] {
 
 object Check {
   def apply[E, A](pred: Predicate[E, A]): Check[E, A, A] =
-    Pure2(pred)
+    PurePredicate(pred)
+
+  def apply[E, A, B](func: A => Validated[E, B]): Check[E, A, B] =
+    Pure2(func)
 }
 
 final case class Map[E, A, B, C](check: Check[E, A, B], func: B => C)
@@ -100,6 +115,14 @@ final case class AndThen2[E, A, B, C](check1: Check[E, A, B],
     check1(in).withEither(e => e.flatMap(check2(_).toEither))
 }
 
-final case class Pure2[E, A](pred: Predicate[E, A]) extends Check[E, A, A] {
+final case class PurePredicate[E, A](pred: Predicate[E, A])
+    extends Check[E, A, A] {
   def apply(in: A)(implicit s: Semigroup[E]): Validated[E, A] = pred(in)
+}
+
+final case class Pure2[E, A, B](func: A => Validated[E, B])
+    extends Check[E, A, B] {
+
+  def apply(a: A)(implicit s: Semigroup[E]): Validated[E, B] =
+    func(a)
 }
