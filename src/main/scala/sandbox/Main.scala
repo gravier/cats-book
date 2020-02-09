@@ -3,14 +3,19 @@ package sandbox
 import sandbox.check.{Check, CheckF, Predicate}
 import sandbox.check.Predicate._
 import cats.Semigroup
+import cats.data.Kleisli
 import cats.instances.list._
 import cats.syntax.either._
+import sandbox.check.Check
 // for Semigroup
 import cats.syntax.semigroup._ // for |+|
 import cats.syntax.validated._ // for |+|
 import cats.data.{NonEmptyList, Validated}
 import cats.syntax.apply._ // for mapN
 import cats.syntax.validated._ // for valid and invalid
+import cats.data.{Kleisli, NonEmptyList, Validated}
+import cats.instances.either._ // for Semigroupal
+import cats.instances.list._ // for Monad
 
 object Main extends App {
   import cats.instances.list._ // for Semigroup
@@ -102,12 +107,48 @@ object Main extends App {
 
   println(isUserNameValid("4lt"))
   println(isUserNameValid("5ltrs"))
-  println(isUserNameValid("5ltrs%"))
+  println(isUserNameValid("5lrs%"))
 
   println(isEmailAddressValid("abc@aaa.lt"))
   println(isEmailAddressValid("@aaa.lt"))
   println(isEmailAddressValid("abc@a.a"))
   println(isEmailAddressValid("abc@aaalt"))
   println(isEmailAddressValid("@abc@aaalt"))
+
+  type Result[A] = Either[Errors, A]
+
+  type CheckK[A, B] = Kleisli[Result, A, B]
+
+  // Create a check from a function:
+  def check[A, B](func: A => Result[B]): CheckK[A, B] =
+    Kleisli(func)
+
+  // Create a check from a Predicate:
+  def checkPred[A](pred: Predicate[Errors, A]): CheckK[A, A] =
+    Kleisli[Result, A, A](pred.run)
+
+  def isUserNameValid2: CheckK[String, String] =
+    checkPred(longerThan(4)) andThen checkPred(alphanumeric)
+
+  println(isUserNameValid2("4lt"))
+  println(isUserNameValid2("5ltrs"))
+  println(isUserNameValid2("5ltrs%"))
+
+  final case class User(username: String, email: String)
+
+  def createUser1(username: String, email: String): Validated[Errors, User] =
+    (
+      isUserNameValid(username),
+      isUserNameValid(email)
+    ).mapN(User)
+
+  def createUser2(username: String, email: String): Either[Errors, User] =
+    (
+      isUserNameValid2.run(username),
+      isUserNameValid2.run(email)
+    ).mapN(User)
+
+  println("usr 1 " + createUser1("Naa", "noaa%"))
+  println("usr 2 " + createUser2("Nae", "noaa@"))
 
 }

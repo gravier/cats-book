@@ -54,6 +54,10 @@ sealed trait Predicate[E, A] {
           case (Invalid(e1), Invalid(e2)) => (e1 |+| e2).invalid
         }
     }
+
+  def run(implicit s: Semigroup[E]): A => Either[E, A] =
+    (a: A) => this(a).toEither
+
 }
 
 object Predicate {
