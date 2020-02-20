@@ -10,17 +10,8 @@ object Main extends App {
   import cats.instances.int._
   val a2 = a.increment("A", 1)
 
-  import sandbox.crdt.BoundedSemiLattice._
   val ab = a.merge(b)
   println(ab)
   println(a2)
-  val ab2 = ab.merge(a2)
-  println(func.total(ab2))
-}
-
-object func {
-  def total(c: GCounter[Int]) = {
-    import cats.instances.int._
-    c.total
-  }
+  println(ab.merge(a2).total)
 }
