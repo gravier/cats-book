@@ -22,6 +22,7 @@ package sandbox.crdt
 
 import cats.Monoid
 import cats.kernel.CommutativeMonoid
+import scala.language.implicitConversions
 trait BoundedSemiLattice[A] extends CommutativeMonoid[A] {
   def combine(a1: A, a2: A): A
   def empty: A
@@ -56,7 +57,6 @@ final case class GCounter[A](counters: Map[String, A]) {
   def increment(machine: String, amount: A)(
       implicit m: Monoid[A]): GCounter[A] = {
     val value = amount |+| counters.getOrElse(machine, m.empty)
-    println(s"value: $value")
     GCounter(counters + (machine -> value))
   }
 
@@ -65,4 +65,79 @@ final case class GCounter[A](counters: Map[String, A]) {
 
   def total(implicit m: CommutativeMonoid[A]): A =
     this.counters.values.toList.combineAll
+}
+
+trait GCounter2[F[_, _], K, V] {
+  def increment(f: F[K, V])(k: K, v: V)(
+      implicit m: CommutativeMonoid[V]): F[K, V]
+
+  def merge(f1: F[K, V], f2: F[K, V])(
+      implicit b: BoundedSemiLattice[V]): F[K, V]
+
+  def total(f: F[K, V])(implicit m: CommutativeMonoid[V]): V
+}
+
+trait KeyValueStore[F[_, _]] {
+  def put[K, V](f: F[K, V])(k: K, v: V): F[K, V]
+
+  def get[K, V](f: F[K, V])(k: K): Option[V]
+
+  def getOrElse[K, V](f: F[K, V])(k: K, default: V): V =
+    get(f)(k).getOrElse(default)
+
+  def values[K, V](f: F[K, V]): List[V]
+}
+
+object KeyValueStore {
+  def apply[F[_, _], K, V](implicit store: KeyValueStore[F]) =
+    store
+
+  implicit def mapInstance[K, V] = new KeyValueStore[Map] {
+    def put[K, V](f: Map[K, V])(k: K, v: V): Map[K, V] = f + (k -> v)
+    def get[K, V](f: Map[K, V])(k: K): Option[V] = f.get(k)
+    def values[K, V](f: Map[K, V]): List[V] = f.values.toList
+  }
+}
+
+//trait GCounter3[KeyValueStore, K, V] {
+//  def increment(f: KeyValueStore[K, V])(k: K, v: V)(
+//    implicit m: CommutativeMonoid[V]): KeyValueStore[K, V]
+//
+//  def merge(f1: KeyValueStore[K, V], f2: F[K, V])(
+//    implicit b: BoundedSemiLattice[V]): KeyValueStore[K, V]
+//
+//  def total(f: KeyValueStore[K, V])(implicit m: CommutativeMonoid[V]): V
+//}
+
+object GCounter2 {
+  def apply[F[_, _], K, V](implicit counter: GCounter2[F, K, V]) =
+    counter
+
+  implicit def mapInstance[K, V] = new GCounter2[Map, K, V] {
+    def increment(f: Map[K, V])(k: K, v: V)(
+        implicit m: CommutativeMonoid[V]): Map[K, V] = {
+      val value = v |+| f.getOrElse(k, m.empty)
+      f + (k -> value)
+    }
+
+    def merge(f1: Map[K, V], f2: Map[K, V])(
+        implicit b: BoundedSemiLattice[V]): Map[K, V] = f1 |+| f2
+
+    def total(f: Map[K, V])(implicit m: CommutativeMonoid[V]): V =
+      f.values.toList.combineAll
+  }
+
+  implicit def kvStoreInstance[S[_, _], K, V](implicit store: KeyValueStore[S]) =
+    new GCounter2[S, K, V] {
+      def increment(f: S[K, V])(k: K, v: V)(
+          implicit m: CommutativeMonoid[V]): S[K, V] = {
+        val value = v |+| store.getOrElse(f)(k, m.empty)
+        store.put[K, V](f)(k, value)
+      }
+
+      def total(f: S[K, V])(implicit m: CommutativeMonoid[V]): V =
+        store.values(f).combineAll
+
+      def merge(f1: S[K, V], f2: S[K, V])(implicit b: BoundedSemiLattice[V]): S[K, V] = f1
+    }
 }
