@@ -1,3 +1,5 @@
+package sandbox.crdt
+
 //final case class GCounter(counters: Map[String, Int]) {
 //  def increment(machine: String, amount: Int) =
 //    GCounter(counters ++ Map( machine -> (counters.getOrElse(machine, 0) + amount)))
@@ -18,6 +20,7 @@
 //val a2 = a.increment("A", 1)
 //ab.merge(a2).total
 
+import cats.Monoid
 import cats.kernel.CommutativeMonoid
 trait BoundedSemiLattice[A] extends CommutativeMonoid[A] {
   def combine(a1: A, a2: A): A
@@ -35,7 +38,7 @@ object BoundedSemiLattice {
     }
 
   implicit def setInstance[A]: BoundedSemiLattice[Set[A]] =
-    new BoundedSemiLattice[Set[A]]{
+    new BoundedSemiLattice[Set[A]] {
       def combine(a1: Set[A], a2: Set[A]): Set[A] =
         a1 union a2
 
@@ -44,24 +47,22 @@ object BoundedSemiLattice {
     }
 }
 
-
 import cats.instances.list._
 import cats.instances.map._
 import cats.syntax.semigroup._
-import cats.syntax.foldable._  // for combineAll
+import cats.syntax.foldable._ // for combineAll
 
-final case class GCounter[A](counters: Map[String,A]) {
-  def increment(machine: String, amount: A)
-               (implicit m: CommutativeMonoid[A]): GCounter[A] = {
+final case class GCounter[A](counters: Map[String, A]) {
+  def increment(machine: String, amount: A)(
+      implicit m: Monoid[A]): GCounter[A] = {
     val value = amount |+| counters.getOrElse(machine, m.empty)
+    println(s"value: $value")
     GCounter(counters + (machine -> value))
   }
 
-  def merge(that: GCounter[A])
-           (implicit b: BoundedSemiLattice[A]): GCounter[A] =
+  def merge(that: GCounter[A])(implicit b: BoundedSemiLattice[A]): GCounter[A] =
     GCounter(this.counters |+| that.counters)
 
   def total(implicit m: CommutativeMonoid[A]): A =
     this.counters.values.toList.combineAll
 }
-
